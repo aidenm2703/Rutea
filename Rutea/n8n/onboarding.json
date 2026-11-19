@@ -1,0 +1,163 @@
+{
+  "name": "Rutea · Onboarding y recuperación",
+  "nodes": [
+    {
+      "id": "b40180df-e579-44ce-bff0-30bd9cc9dd9a",
+      "name": "Registro confirmado",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rutea-onboarding",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "ee8003a2-1554-4e79-8a63-5882f969234f",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RUTEA_HEADER_AUTH",
+          "name": "Rutea Workflow Header"
+        }
+      }
+    },
+    {
+      "id": "5ae5bd15-7c32-48ed-aaf3-cbbb717046ec",
+      "name": "Programación",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        180
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "1331d1be-a0ad-46c9-96f1-2b2c89ba664e",
+      "name": "Ejecución manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        360
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "3326d223-4bd1-4883-bcc2-43cafc8e80ff",
+      "name": "Procesar bienvenida",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/internal/outbox/welcome/process",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RUTEA_HEADER_AUTH",
+          "name": "Rutea Workflow Header"
+        }
+      }
+    },
+    {
+      "id": "71915a66-16a3-4820-b9d8-d07cb9f10bc6",
+      "name": "Procesar recuperación",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        240
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/internal/outbox/reset/process",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RUTEA_HEADER_AUTH",
+          "name": "Rutea Workflow Header"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Registro confirmado": {
+      "main": [
+        [
+          {
+            "node": "Procesar bienvenida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Programación": {
+      "main": [
+        [
+          {
+            "node": "Procesar bienvenida",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Procesar recuperación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecución manual": {
+      "main": [
+        [
+          {
+            "node": "Procesar bienvenida",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Procesar recuperación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Costa_Rica",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false
+  }
+}
