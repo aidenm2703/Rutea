@@ -30,7 +30,9 @@ export function createAuthService(accounts, secret, welcomeHook) {
         algorithm: 'HS256', issuer, audience, subject: user.id,
         jwtid: sessionId, expiresIn: sessionSeconds,
       })
-      await accounts.createSession(sessionId, user.id, expiresAt)
+      if (!await accounts.createSession(sessionId, user.id, expiresAt, user.credential_version)) {
+        throw new HttpError(401, 'Correo o contraseña incorrectos.')
+      }
       return { token, expiresAt, user: { id: user.id, email: user.email, role: user.role } }
     },
     async authenticate(token) {
@@ -42,3 +44,8 @@ export function createAuthService(accounts, secret, welcomeHook) {
       }
       const user = await accounts.findSession(claims.jti, claims.sub)
       if (!user) throw new HttpError(401, 'La sesión expiró o no es válida.')
+      return { user, sessionId: claims.jti }
+    },
+    logout: (sessionId) => accounts.deleteSession(sessionId),
+  }
+}

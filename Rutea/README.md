@@ -1,38 +1,64 @@
 ﻿# Rutea
 
-Primer incremento de la aplicación de turismo accesible en Costa Rica.
+Aplicación académica de turismo accesible en Costa Rica.
 
-- `frontend/src` contiene React, el módulo de autenticación y el cliente HTTP.
-- `backend/src` contiene Express con rutas, middlewares, controladores, servicios y modelos PostgreSQL.
-- `database` contiene el esquema SQL y los datos iniciales.
+- `frontend/src` contiene React, navegación y módulos de interfaz.
+- `backend/src` contiene Express con rutas, middlewares, controladores, servicios y modelos.
+- `database` contiene el esquema, las migraciones y el catálogo inicial.
+- `n8n` contiene los tres workflows. Los pasos de configuración están en [Integraciones](docs/integraciones.md).
 
-## Inicio local
+## Demo local
 
-Requiere Node.js 24 y PostgreSQL 14 o posterior. Ejecuta estos comandos desde la carpeta que contiene `frontend`, `backend` y `database`.
+Requiere Node.js 24. Desde la carpeta que contiene `frontend` y `backend`, ejecuta en una terminal:
+
+```powershell
+npm.cmd --prefix backend ci
+npm.cmd --prefix backend run demo
+```
+
+En otra terminal:
+
+```powershell
+npm.cmd --prefix frontend ci
+npm.cmd --prefix frontend run dev
+```
+
+Abre la URL que muestra Vite. La demo usa PostgreSQL embebido en memoria e incluye dos fichas con fuente. Puedes registrar un usuario de prueba, consultar el catálogo, guardar favoritos y registrar visitas. Los datos se reinician al cerrar el backend. La demo pública de tipo de cambio necesita internet. Para probar correo, IA y workflows con credenciales, usa la configuración persistente.
+
+## Desarrollo con PostgreSQL
+
+Crea una base vacía con PostgreSQL 14 o posterior. Si ya aplicaste `schema.sql` y `seed.sql` en la primera entrega, aplica únicamente las migraciones y el catálogo.
 
 ```powershell
 createdb -U postgres rutea
 psql -v ON_ERROR_STOP=1 -U postgres -d rutea -f database/schema.sql
 psql -v ON_ERROR_STOP=1 -U postgres -d rutea -f database/seed.sql
+Get-ChildItem database/migrations/*.sql | Sort-Object Name | ForEach-Object {
+  psql -v ON_ERROR_STOP=1 -U postgres -d rutea -f $_.FullName
+  if ($LASTEXITCODE -ne 0) { throw "Falló la migración $($_.Name)" }
+}
+psql -v ON_ERROR_STOP=1 -U postgres -d rutea -f database/seed_catalog.sql
 Copy-Item backend/.env.example backend/.env
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Completa `DATABASE_URL` en `backend/.env` y guarda la salida del último comando en `JWT_SECRET`.
+Completa `DATABASE_URL` y guarda el valor generado en `JWT_SECRET`. Arranca con `npm.cmd --prefix backend run dev` y `npm.cmd --prefix frontend run dev`. Si cambias el puerto del backend, configura `RUTEA_API_TARGET` con su URL antes de iniciar Vite. Las credenciales permanecen en el backend y el frontend consume `/api` en el mismo origen.
 
-En una terminal, desde `backend`, ejecuta `npm ci` y `npm run dev`. En otra, desde `frontend`, ejecuta los mismos comandos y abre la URL que muestra Vite. Si cambias el puerto del backend, configura `RUTEA_API_TARGET` con su URL antes de iniciar Vite.
+Para crear la primera cuenta administradora, registra un correo de prueba desde la interfaz y promuévelo desde la consola de la base, sustituyendo el correo por la cuenta autorizada:
 
-## Alcance del incremento
+```sql
+UPDATE users
+SET role_id = (SELECT id FROM roles WHERE code = 'admin')
+WHERE email = 'administracion@example.test';
+```
 
-| Requisito | Estado |
-| --- | --- |
-| RF-01, RF-34, HU-01 | Registro público como viajero y aceptación de la versión de prueba con fecha. Ambas escrituras se realizan de forma atómica. |
-| RF-02, RF-03, HU-02 | bcrypt, JWT de una hora y cierre de sesión que revoca el token en el servidor. El frontend guarda el token en memoria. Al recargar se debe volver a ingresar. |
-| RF-06, RF-37 | Control de acceso por rol en Express, consulta de cuenta protegida y panel inicial por rol. Los paneles de trabajo se agregarán con cada módulo. |
-| RF-33 | Textos de prueba visibles durante el registro. Quedan pendientes las políticas definitivas y sus pantallas. |
-
-Quedan pendientes la recuperación de contraseña, el perfil, el catálogo, la comunidad, el pasaporte, la administración, la auditoría, la baja, los agentes y las integraciones.
+El administrador puede asignar los roles de viajero, moderador y auditor desde Usuarios. Las cuentas de administración se aprovisionan desde la base. Vuelve a ingresar después de un cambio de rol para actualizar el menú.
 
 ## Verificación
 
-Desde `backend`, ejecuta `npm test`. La suite usa un modelo de datos en memoria para probar la API HTTP. Desde `frontend`, ejecuta `npm run lint` y `npm run build`.
+Después de instalar ambas aplicaciones, ejecuta `npm.cmd test` desde esta carpeta. Incluye pruebas HTTP con PostgreSQL embebido y proveedores simulados, lint y compilación. La tabla de cobertura distingue las pruebas locales de las integraciones que requieren credenciales reales.
+
+- [Modelo relacional y diccionario](docs/modelo-de-datos.md)
+- [Fuentes del catálogo](docs/catalogo.md)
+- [Integraciones, workflows y asistentes](docs/integraciones.md)
+- [Cobertura de requisitos](docs/cobertura.md)

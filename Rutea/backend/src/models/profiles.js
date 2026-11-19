@@ -25,19 +25,30 @@ export function createProfileModel(db) {
     reset: (digest, hash) => one(`WITH consumed AS (
       DELETE FROM password_resets WHERE digest=$1 AND expires_at>now() RETURNING user_id
     ), changed AS (
-      UPDATE users SET password_hash=$2 FROM consumed WHERE id=consumed.user_id RETURNING id
+      UPDATE users SET password_hash=$2, credential_version=credential_version+1
+      FROM consumed WHERE id=consumed.user_id RETURNING id
     ), revoked AS (
       DELETE FROM sessions WHERE user_id IN (SELECT id FROM changed)
     ) SELECT id FROM changed`, [digest,hash]),
     erase: (id, hash) => one(`WITH erased AS (
-      DELETE FROM users WHERE id=$1 AND password_hash=$2 RETURNING email
+      DELETE FROM users WHERE id=$1 AND password_hash=$2 RETURNING id,email
     ), notice AS (
       INSERT INTO notification_outbox(kind,recipient) SELECT 'deletion',email FROM erased
+    ), anonymized AS (
+      UPDATE activity_log SET target=NULL WHERE action LIKE 'role.changed.%'
+      AND target IN (SELECT id::text FROM erased)
     ) INSERT INTO deletion_records(completed_at) SELECT now() FROM erased RETURNING id`, [id,hash]),
     log: () => rows('SELECT id,action,target,created_at FROM activity_log ORDER BY id DESC LIMIT 100'),
     acceptances: () => rows(`SELECT policy_version,accepted_at FROM policy_acceptances
       ORDER BY accepted_at DESC LIMIT 100`),
     deletions: () => rows('SELECT id,completed_at FROM deletion_records ORDER BY completed_at DESC LIMIT 100'),
+    users: (page) => rows(`SELECT u.id,u.email,u.display_name,r.code AS role
+      FROM users u JOIN roles r ON r.id=u.role_id ORDER BY u.email LIMIT 50 OFFSET $1`, [page * 50]),
+    changeRole: (actor, id, role) => one(`WITH changed AS (
+      UPDATE users SET role_id=(SELECT id FROM roles WHERE code=$3)
+      WHERE id=$2 AND role_id<>(SELECT id FROM roles WHERE code='admin') RETURNING id
+    ) INSERT INTO activity_log(actor_id,action,target)
+      SELECT $1,'role.changed.' || $3,id::text FROM changed RETURNING id`, [actor,id,role]),
     claim: (kind, attempt) => one(`WITH expired AS (
       DELETE FROM notification_outbox WHERE expires_at<=now()
     ), queued AS (
@@ -49,5 +60,6 @@ export function createProfileModel(db) {
     delivered: (id, attempt) => one(`WITH sent AS (
       DELETE FROM notification_outbox WHERE id=$1 AND attempt_id=$2 RETURNING kind
     ) INSERT INTO activity_log(action) SELECT 'email.sent.' || kind FROM sent RETURNING id`, [id,attempt]),
+    deliveryFailed: (kind) => rows('INSERT INTO activity_log(action) VALUES ($1)', ['email.failure.' + kind]),
   }
 }

@@ -21,15 +21,16 @@ export function number(value, label, min, max, integer = false) {
 }
 
 export function uuid(value) {
-  if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value ?? '')) invalid('identificador')
+  if (typeof value !== 'string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value)) invalid('identificador')
   return value
 }
 
-export function date(value) {
+export function date(value, allowFuture = false) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) invalid('fecha')
   const parsed = new Date(value)
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value ?? '') || !Number.isFinite(+parsed) ||
+  if (!Number.isFinite(+parsed) ||
       parsed.toISOString().slice(0, 10) !== value || value < '1900-01-01' ||
-      value > new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Costa_Rica' }).format(new Date())) invalid('fecha')
+      (!allowFuture && value > new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Costa_Rica' }).format(new Date()))) invalid('fecha')
   return value
 }
 

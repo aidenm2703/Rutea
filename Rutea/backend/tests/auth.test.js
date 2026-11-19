@@ -31,6 +31,7 @@ test('registration, authentication, role checks, expiration and logout through H
     },
     async createSession(id, userId) {
       sessions.set(id, userId)
+      return true
     },
     async findSession(id, userId) {
       if (sessions.get(id) !== userId) return

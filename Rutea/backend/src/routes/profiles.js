@@ -21,7 +21,8 @@ export function createProfileRouter(auth, service) {
   route.post('/password/recovery', limit, c.resetRequest)
   route.post('/password/reset', limit, c.reset)
   route.get('/audit', session, requireRole('auditor','admin'), c.audit)
-  route.post('/internal/outbox/:kind/claim', internal, c.claim)
-  route.post('/internal/outbox/:id/delivered', internal, c.delivered)
+  route.get('/admin/users', session, requireRole('admin'), c.users)
+  route.patch('/admin/users/:id/role', session, requireRole('admin'), c.changeRole)
+  route.post('/internal/outbox/:kind/process', internal, c.process)
   return route
 }

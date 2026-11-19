@@ -1,0 +1,7 @@
+{
+  "name": "rutea",
+  "private": true,
+  "scripts": {
+    "test": "npm --prefix backend test && npm --prefix frontend run lint && npm --prefix frontend run build"
+  }
+}

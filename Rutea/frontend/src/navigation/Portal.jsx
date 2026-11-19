@@ -5,6 +5,7 @@ import { Favorites, Passport } from '../modules/travel/Traveler.jsx'
 import { Assistants, Exchange } from '../modules/integrations/Tools.jsx'
 import AuthForm from '../modules/auth/AuthForm.jsx'
 import Dashboard from '../modules/auth/Dashboard.jsx'
+import Users from '../modules/account/Users.jsx'
 
 export default function Portal({ page, navigate, session, notice, onLogin, onLogout, onDeleted, pending, error }) {
   const role = session?.user.role
@@ -13,7 +14,7 @@ export default function Portal({ page, navigate, session, notice, onLogin, onLog
   const basic = [['explorar','Explorar'], ['cambio','Tipo de cambio'], ['legales','Términos y privacidad']]
   const traveler = role === 'traveler' ? [['favoritos','Favoritos'], ['pasaporte','Pasaporte']] : []
   const moderation = ['moderator','admin'].includes(role) ? [['moderacion','Moderación']] : []
-  const administration = role === 'admin' ? [['administracion','Administración']] : []
+  const administration = role === 'admin' ? [['administracion','Administración'], ['usuarios','Usuarios']] : []
   const audit = ['auditor','admin'].includes(role) ? [['auditoria','Auditoría']] : []
   const account = session ? [['asistentes','Asistentes'], ['perfil','Perfil'], ['cuenta','Mi cuenta']] : [['cuenta','Ingresar']]
   const links = [...basic, ...traveler, ...moderation, ...administration, ...audit, ...account]
@@ -31,7 +32,8 @@ export default function Portal({ page, navigate, session, notice, onLogin, onLog
     const views = {
       cambio: <Exchange />, legales: <Legal />, favoritos: <Favorites token={token} selectPlace={selectPlace} />,
       pasaporte: <Passport token={token} />, moderacion: <Moderation token={token} />, administracion: <Admin token={token} />,
-      auditoria: <Audit token={token} />, asistentes: <Assistants token={token} />, perfil: <Profile token={token} onDeleted={onDeleted} />,
+      usuarios: <Users token={token} />, auditoria: <Audit token={token} />,
+      asistentes: <Assistants token={token} />, perfil: <Profile token={token} onDeleted={onDeleted} />,
       cuenta: session ? <Dashboard user={session.user} onLogout={onLogout} pending={pending} error={error} />
         : <><AuthForm notice={notice} onLogin={onLogin} /><p className="account-link"><a href="#recuperar">Recuperar contraseña</a></p></>,
     }

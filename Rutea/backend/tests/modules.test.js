@@ -14,6 +14,7 @@ import { createProfileService } from '../src/services/profiles.js'
 import { createOutboxCrypto } from '../src/services/outbox-crypto.js'
 import { createAgentService } from '../src/services/agents/index.js'
 import { createExchangeService, parseBccr } from '../src/services/exchange.js'
+import { createWeatherService } from '../src/services/weather.js'
 
 const password = 'contraseña inicial'
 const secret = 'test-secret-that-is-at-least-32-bytes'
@@ -27,24 +28,30 @@ test('parses the numeric and dated BCCR fields from its XML envelope', () => {
 test('travel, private account, audit, outbox and integration flows with PostgreSQL', async (t) => {
   const db = new PGlite()
   t.after(() => db.close())
-  for (const filename of ['schema.sql','seed.sql','migrations/002_travel.sql','migrations/003_accounts.sql','migrations/004_integrations.sql']) {
+  for (const filename of ['schema.sql','seed.sql','migrations/002_travel.sql','migrations/003_accounts.sql','migrations/004_integrations.sql',
+    'migrations/005_policy_preview.sql']) {
     await db.exec(await readFile(new URL('../../database/' + filename, import.meta.url), 'utf8'))
   }
   const auth = createAuthService(createAccountModel(db, true), secret)
   const travel = createTravelService(createTravelModel(db))
+  const mail = []
   const profiles = createProfileService(createProfileModel(db), {
     appOrigin: 'https://example.test', workflowSecret: secret, mailKey: createOutboxCrypto(secret),
+    sendMail: async (job) => { mail.push(job) },
   })
   const integrations = createIntegrationModel(db)
   const exchange = createExchangeService(integrations, { fetcher: async () =>
     Response.json({ result: 'success', base_code: 'USD', rates: { CRC: 509.3 },
       time_last_update_unix: Math.floor(Date.now() / 1000) }),
   })
+  const weather = createWeatherService({ fetcher: async () => Response.json({ daily: {
+    time: ['2026-11-19'], temperature_2m_min: [20], temperature_2m_max: [25], precipitation_sum: [4],
+  } }) })
   const agents = createAgentService(integrations, travel, exchange, async (task, payload) => {
     assert.ok(task)
     assert.doesNotMatch(payload, /persona@example\.test/)
     return 'Respuesta de prueba del proveedor.'
-  })
+  }, weather)
 
   const server = createApp(auth, { travel, profiles, agents, exchange, integrations }).listen(0, '127.0.0.1')
   t.after(() => new Promise((resolve) => server.close(resolve)))
@@ -66,7 +73,7 @@ test('travel, private account, audit, outbox and integration flows with PostgreS
   async function register(name, role = 'traveler') {
     const email = name + '@example.test'
     await request('/auth/register', {
-      method: 'POST', status: 201, body: { email, password, acceptedPolicies: true, policyVersion: 'preview-1' },
+      method: 'POST', status: 201, body: { email, password, acceptedPolicies: true, policyVersion: 'preview-2' },
     })
     if (role !== 'traveler') {
       await db.query('UPDATE users SET role_id=(SELECT id FROM roles WHERE code=$2) WHERE email=$1', [email,role])
@@ -78,6 +85,15 @@ test('travel, private account, audit, outbox and integration flows with PostgreS
   const traveler = await register('persona')
   const auditor = await register('audit','auditor')
   const moderator = await register('moderator','moderator')
+  await request('/admin/users', { token: auditor, status: 403 })
+  const accounts = await request('/admin/users', { token: admin })
+  const moderatorAccount = accounts.find((item) => item.role === 'moderator')
+  const changeRole = (role) => request('/admin/users/' + moderatorAccount.id + '/role', {
+    token: admin, method: 'PATCH', status: 204, body: { role },
+  })
+  await changeRole('auditor')
+  await request('/moderation', { token: moderator, status: 403 })
+  await changeRole('moderator')
   const fixture = {
     name: 'Lugar de prueba', description: 'Ejemplo cultural para la prueba automatizada.',
     province: 'sj', category: 'culture', food: 'Vegetariana', latitude: 10, longitude: -84,
@@ -116,6 +132,18 @@ test('travel, private account, audit, outbox and integration flows with PostgreS
   await request('/agents/moderation', { token: traveler, method: 'POST', body, status: 403 })
   const output = await request('/agents/culture', { token: traveler, method: 'POST', body })
   assert.deepEqual(output.sources, [fixture.url])
+  for (const agent of ['itinerary','accessibility','packing','budget','journal']) {
+    const result = await request('/agents/' + agent, {
+      token: traveler, method: 'POST', body: {
+        ...body, placeId: id, days: 2, budget: 100, currency: 'USD', start: '2026-11-19', end: '2026-11-21',
+      },
+    })
+    assert.ok(result.answer)
+    if (agent === 'packing') assert.deepEqual(result.sources, ['https://open-meteo.com/'])
+  }
+  for (const [agent, token] of [['moderation',moderator], ['privacy',auditor]]) {
+    assert.ok((await request('/agents/' + agent, { token, method: 'POST', body })).answer)
+  }
   assert.equal((await request('/audit/agents', { token: auditor }))[0].status, 'success')
   assert.equal((await request('/exchange')).rate, 509.3)
   await request('/audit', { token: traveler, status: 403 })
@@ -127,8 +155,9 @@ test('travel, private account, audit, outbox and integration flows with PostgreS
   const known = await request('/password/recovery', { ...recovery, body: { email: 'persona@example.test' } })
   const unknown = await request('/password/recovery', { ...recovery, body: { email: 'unknown@example.test' } })
   assert.deepEqual(known, unknown)
-  await request('/internal/outbox/reset/claim', { method: 'POST', status: 403 })
-  const reset = await request('/internal/outbox/reset/claim', { method: 'POST', workflow: true })
+  await request('/internal/outbox/reset/process', { method: 'POST', status: 403 })
+  assert.deepEqual(await request('/internal/outbox/reset/process', { method: 'POST', workflow: true }), { processed: true })
+  const reset = mail.at(-1)
   const resetToken = new URL(reset.payload).hash.slice(7)
   const newPassword = 'contraseña renovada'
   await request('/password/reset', { method: 'POST', status: 204, body: { token: resetToken, password: newPassword } })
@@ -139,10 +168,8 @@ test('travel, private account, audit, outbox and integration flows with PostgreS
   await request('/profile/deletion', { token: renewed.token, method: 'POST', body: { confirm: 'ELIMINAR', password: newPassword } })
   await request('/profile', { token: renewed.token, status: 401 })
   assert.equal((await request('/places/' + id)).reviews.length, 0)
-  const deletion = await request('/internal/outbox/deletion/claim', { method: 'POST', workflow: true })
+  assert.deepEqual(await request('/internal/outbox/deletion/process', { method: 'POST', workflow: true }), { processed: true })
+  const deletion = mail.at(-1)
   assert.equal(deletion.recipient, 'persona@example.test')
-  await request('/internal/outbox/' + deletion.id + '/delivered', {
-    method: 'POST', workflow: true, status: 204, body: { attemptId: deletion.attempt_id },
-  })
-  assert.deepEqual(await request('/internal/outbox/deletion/claim', { method: 'POST', workflow: true }), {})
+  assert.deepEqual(await request('/internal/outbox/deletion/process', { method: 'POST', workflow: true }), { processed: false })
 })

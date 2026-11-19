@@ -259,3 +259,8 @@ Requisitos de evidencia y planificación reforzados
 - Incluir matriz de trazabilidad entre RF/RNF/HU, módulos, pruebas y pantallas.
 - Adjuntar schema.sql, seed.sql, ERD, diccionario, .env.example, pruebas, exportaciones n8n, documentación de agentes/APIs, README y URLs/capturas de producción.
 - No asumir que el documento complementado contiene todos los anexos completos ni que los mockups existen: verificar artefactos reales antes de marcar completado.
+M. Estado de implementación del Nivel 1
+
+La aplicación está en Rutea/frontend y Rutea/backend, cada una con su propio src. La matriz de avance con evidencia por requisito está en Rutea/docs/cobertura.md. Los pasos para iniciar la demo y una instalación persistente están en Rutea/README.md.
+
+El estado inicial de la sección J corresponde al anteproyecto. Para la implementación actual, consulta la matriz de cobertura. La validación con proveedores simulados se distingue de la integración en vivo y de la configuración en una instancia de destino.

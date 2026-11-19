@@ -9,7 +9,9 @@ export function parseBccr(xml) {
   const normalized = xml.replaceAll('&lt;', '<').replaceAll('&gt;', '>')
   const day = /<DES_FECHA>((\d{4})-(\d{2})-(\d{2}))[T<]/.exec(normalized)?.[1]
   const rate = Number(/<NUM_VALOR>([\d.]+)<\/NUM_VALOR>/.exec(normalized)?.[1])
-  if (!day || !Number.isFinite(rate) || rate <= 0) throw new Error('Invalid BCCR response')
+  const date = new Date(day)
+  if (!day || !Number.isFinite(+date) || date.toISOString().slice(0,10) !== day ||
+      !Number.isFinite(rate) || rate <= 0) throw new Error('Invalid BCCR response')
   return { observed_on: day, rate }
 }
 

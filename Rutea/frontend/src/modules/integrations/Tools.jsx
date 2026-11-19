@@ -20,15 +20,28 @@ export function Exchange() {
 
 function AgentForm({ agent, token }) {
   const [answer, setAnswer] = useState(null)
-  const places = useResource(agent.context === 'place' ? '/places' : null)
+  const needsPlace = ['place','weather'].includes(agent.context)
+  const places = useResource(needsPlace ? '/places' : null)
   return <>
     <ActionForm label="Consultar" success="Consulta completada." reset={false} onSubmit={async (body) => {
       setAnswer(null)
-      const data = await api('/agents/' + agent.id, { method: 'POST', token, body: { ...body, authorized: body.authorized === 'on' } })
+      const parameters = agent.id === 'itinerary' ? { days: Number(body.days), budget: Number(body.budget) } : {}
+      const data = await api('/agents/' + agent.id, {
+        method: 'POST', token, body: { ...body, ...parameters, authorized: body.authorized === 'on' },
+      })
       setAnswer(data)
     }}>
       {agent.context === 'catalog' && <label>Nombre o palabra para buscar en el catálogo <input name="query" maxLength="120" /></label>}
-      {agent.context === 'place' && <Resource resource={places}>{(items) => <label>Lugar <select name="placeId" required>
+      {agent.id === 'itinerary' && <>
+        <label>Días <input name="days" type="number" min="1" max="30" required /></label>
+        <label>Presupuesto <input name="budget" type="number" min="0" max="100000000" step=".01" required /></label>
+        <label>Moneda <select name="currency"><option>CRC</option><option>USD</option></select></label>
+      </>}
+      {agent.context === 'weather' && <>
+        <label>Inicio <input name="start" type="date" required /></label>
+        <label>Fin <input name="end" type="date" required /></label>
+      </>}
+      {needsPlace && <Resource resource={places}>{(items) => <label>Lugar <select name="placeId" required>
         <option value="">Seleccionar</option>{items.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}
       </select></label>}</Resource>}
       <label>{agent.input}<textarea name="text" maxLength="3500" required /></label>

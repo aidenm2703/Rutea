@@ -87,13 +87,13 @@ export default function Catalog({ session, placeId, selectPlace }) {
       setCriteria(Object.fromEntries(new FormData(event.currentTarget)))
       setPage(0)
     }}>
-      <label>Buscar <input name="query" placeholder="Nombre o descripción" maxLength="120" /></label>
-      <label>Provincia <select name="province"><option value="">Todas</option>{options.provinces.map((p) =>
+      <label>Buscar <input name="query" placeholder="Nombre o descripción" defaultValue={criteria.query} maxLength="120" /></label>
+      <label>Provincia <select name="province" defaultValue={criteria.province}><option value="">Todas</option>{options.provinces.map((p) =>
         <option key={p.code} value={p.code}>{p.name}</option>)}</select></label>
-      <label>Categoría <select name="category"><option value="">Todas</option>{options.categories.map((p) =>
+      <label>Categoría <select name="category" defaultValue={criteria.category}><option value="">Todas</option>{options.categories.map((p) =>
         <option key={p.code} value={p.code}>{p.name}</option>)}</select></label>
-      <label>Alimentación <input name="food" maxLength="120" /></label>
-      <label>Accesibilidad confirmada <select name="feature"><option value="">Cualquiera</option>{options.features.map((p) =>
+      <label>Alimentación <input name="food" defaultValue={criteria.food} maxLength="120" /></label>
+      <label>Accesibilidad confirmada <select name="feature" defaultValue={criteria.feature}><option value="">Cualquiera</option>{options.features.map((p) =>
         <option key={p.code} value={p.code}>{p.name}</option>)}</select></label>
       <button>Buscar lugares</button>
     </form>}</Resource>

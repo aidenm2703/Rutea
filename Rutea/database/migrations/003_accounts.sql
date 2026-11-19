@@ -1,5 +1,7 @@
 BEGIN;
 ALTER TABLE users ADD COLUMN display_name text;
+ALTER TABLE users ADD COLUMN credential_version integer NOT NULL DEFAULT 1;
+ALTER TABLE sessions ADD COLUMN credential_version integer NOT NULL DEFAULT 1;
 
 CREATE TABLE password_resets (
   user_id uuid PRIMARY KEY REFERENCES users ON DELETE CASCADE,

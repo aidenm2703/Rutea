@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 const proxy = {
-  '/api': process.env.RUTEA_API_TARGET ?? 'http://localhost:3000',
+  '/api': process.env.RUTEA_API_TARGET ?? 'http://127.0.0.1:3000',
 }
 
 export default defineConfig({

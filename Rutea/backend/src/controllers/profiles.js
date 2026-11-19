@@ -12,14 +12,11 @@ export function createProfileController(service) {
     },
     erase: async (req, res) => res.json(await service.erase(req.session.user.id, req.body)),
     audit: async (req, res) => res.json(await service.audit()),
-    claim: async (req, res) => {
-      const job = await service.claim(req.params.kind)
-      if (job) return res.json(job)
-      res.json({})
-    },
-    delivered: async (req, res) => {
-      await service.delivered(req.params.id, req.body)
+    users: async (req, res) => res.json(await service.users(req.query.page)),
+    changeRole: async (req, res) => {
+      await service.changeRole(req.session.user.id, req.params.id, req.body?.role)
       res.sendStatus(204)
     },
+    process: async (req, res) => res.json(await service.process(req.params.kind)),
   }
 }
