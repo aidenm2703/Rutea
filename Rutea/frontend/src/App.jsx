@@ -3,7 +3,7 @@ import { api } from './lib/api.js'
 import Portal from './navigation/Portal.jsx'
 
 function currentPage() {
-  return window.location.hash.slice(1) || 'explorar'
+  return window.location.hash.slice(1) || 'inicio'
 }
 
 export default function App() {

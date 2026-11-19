@@ -1,0 +1,20 @@
+.auth-card { border-color: #deded2; }
+.auth-card h1 {
+  margin-bottom: .45rem;
+  color: #183e35;
+  font-family: Georgia, serif;
+  font-size: clamp(2.15rem, 6vw, 3rem);
+  letter-spacing: -.05em;
+  line-height: 1.1;
+}
+.auth-intro { margin: 0 0 1.75rem; color: #3f514a; }
+.auth-card form > input { margin-bottom: .4rem; }
+.auth-recovery {
+  justify-self: end;
+  color: #183e35;
+  font-size: .92rem;
+  text-underline-offset: .18em;
+}
+.auth-submit { margin-top: .3rem; background: #183e35; color: white; }
+.auth-submit:hover:not(:disabled) { background: #2e6b4b; }
+.auth-switch { width: 100%; margin-top: 1rem; }

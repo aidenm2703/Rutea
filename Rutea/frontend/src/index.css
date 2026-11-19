@@ -84,7 +84,20 @@ summary { cursor: pointer; }
   overflow-wrap: anywhere;
 }
 .surface a, .account-link a { color: #0b2a4a; }
-.account-link { text-align: center; }
+.portal-header-public {
+  justify-content: space-between;
+  background: #fcfaf5;
+  border-bottom: 1px solid #deded2;
+  padding-block: 1rem;
+}
+.portal-header-public a { color: #183e35; }
+.portal-header-public a:focus-visible { outline-color: #183e35; }
+.portal-header-public nav { align-items: center; }
+.portal-header-public nav a.portal-sign-in {
+  border: 1px solid #506e60;
+  border-radius: .5rem;
+  padding: .45rem .8rem;
+}
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: .65rem; }
 fieldset > button, .filter-grid > button { justify-self: start; }
 select, textarea {

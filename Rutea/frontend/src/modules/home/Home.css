@@ -1,0 +1,85 @@
+.home {
+  --pine: #183e35;
+  --leaf: #2e6b4b;
+  max-width: 86rem;
+  margin: 0 auto;
+  color: var(--pine);
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, .92fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.home-intro h1 {
+  color: var(--pine);
+  font-family: Georgia, serif;
+  font-size: clamp(2.9rem, 6vw, 6.4rem);
+  line-height: .99;
+  letter-spacing: -.065em;
+  margin: 0 0 1.5rem;
+}
+
+.home-intro h1 > span { white-space: nowrap; }
+.home-intro em { display: block; color: var(--leaf); font-weight: normal; }
+.home-intro > p { max-width: 34rem; font-size: clamp(1rem, 1.45vw, 1.22rem); line-height: 1.65; }
+.home-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem 1.35rem; margin-top: 1.75rem; }
+.home-actions a { font-weight: 700; }
+.home-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .8rem 1.15rem;
+  border-radius: .55rem;
+  background: var(--pine);
+  color: white;
+  text-decoration: none;
+}
+.home-primary:hover { background: var(--leaf); }
+.home-explore { color: var(--pine); text-underline-offset: .25em; }
+.home-photo {
+  display: grid;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: var(--pine);
+}
+.home-photo img {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: auto;
+  min-height: 25rem;
+  aspect-ratio: 5 / 4;
+  object-fit: cover;
+}
+.home-photo figcaption {
+  grid-area: 1 / 1;
+  align-self: end;
+  display: grid;
+  gap: .15rem;
+  padding: 2rem 1rem .9rem;
+  background: linear-gradient(transparent, #0b241f);
+  color: white;
+}
+.home-photo a { color: white; }
+.home-photo a:focus-visible { outline-color: white; }
+.home-features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: clamp(1.75rem, 4vw, 3.25rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.home-features li { border-top: 1px solid #a7b5a6; padding: 1rem .25rem; }
+.home-features h2 { font-size: 1.05rem; margin: 0 0 .25rem; }
+.home-features p { margin: 0; }
+
+@media (max-width: 46rem) {
+  .home-hero, .home-features { grid-template-columns: 1fr; }
+  .home-intro h1 { font-size: clamp(2.9rem, 11vw, 4.6rem); }
+  .home-photo img { min-height: 0; aspect-ratio: 4 / 3; }
+  .home-features { gap: 0; }
+}

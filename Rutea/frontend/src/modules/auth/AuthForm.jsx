@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api.js'
+import './AuthForm.css'
 
 export default function AuthForm({ onLogin, notice }) {
   const [register, setRegister] = useState(false)
@@ -48,8 +49,9 @@ export default function AuthForm({ onLogin, notice }) {
   }
 
   return (
-    <section className="card" aria-labelledby="auth-title">
+    <section className="card auth-card" aria-labelledby="auth-title">
       <h1 id="auth-title">{register ? 'Crea tu cuenta' : 'Inicia sesión'}</h1>
+      {!register && <p className="auth-intro">Accede a tus favoritos y a tu pasaporte de viajes.</p>}
       {(success || notice) && <p role="status">{success || notice}</p>}
       <form onSubmit={submit} key={String(register)}>
         <label htmlFor="email">Correo electrónico</label>
@@ -74,11 +76,12 @@ export default function AuthForm({ onLogin, notice }) {
           </div>
         ) : <p role="status">Cargando documentos…</p>)}
         {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" disabled={pending || (register && !policies)}>
+        {!register && <a className="auth-recovery" href="#recuperar">¿Olvidaste tu contraseña?</a>}
+        <button className="auth-submit" type="submit" disabled={pending || (register && !policies)}>
           {pending ? 'Enviando…' : register ? 'Crear cuenta' : 'Entrar'}
         </button>
       </form>
-      <button type="button" className="secondary" disabled={pending} onClick={() => {
+      <button type="button" className="secondary auth-switch" disabled={pending} onClick={() => {
         setRegister(!register)
         setPolicies(null)
         setPolicyError('')
