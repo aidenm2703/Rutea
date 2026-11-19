@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { once } from 'node:events'
-import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import { PGlite } from '@electric-sql/pglite'
+import { initializeEmptyDatabase } from '../src/config/bootstrap.sql.js'
 import { createApp } from '../src/app.js'
 import { createAccountModel } from '../src/models/accounts.js'
 import { createTravelModel } from '../src/models/travel.js'
@@ -28,10 +28,7 @@ test('parses the numeric and dated BCCR fields from its XML envelope', () => {
 test('travel, private account, audit, outbox and integration flows with PostgreSQL', async (t) => {
   const db = new PGlite()
   t.after(() => db.close())
-  for (const filename of ['schema.sql','seed.sql','migrations/002_travel.sql','migrations/003_accounts.sql','migrations/004_integrations.sql',
-    'migrations/005_policy_preview.sql']) {
-    await db.exec(await readFile(new URL('../../database/' + filename, import.meta.url), 'utf8'))
-  }
+  await initializeEmptyDatabase((sql) => db.exec(sql), { catalog: false })
   const auth = createAuthService(createAccountModel(db, true), secret)
   const travel = createTravelService(createTravelModel(db))
   const mail = []
@@ -85,6 +82,7 @@ test('travel, private account, audit, outbox and integration flows with PostgreS
   const traveler = await register('persona')
   const auditor = await register('audit','auditor')
   const moderator = await register('moderator','moderator')
+  const otherTraveler = await register('otro-viajero')
   await request('/admin/users', { token: auditor, status: 403 })
   const accounts = await request('/admin/users', { token: admin })
   const moderatorAccount = accounts.find((item) => item.role === 'moderator')
@@ -101,6 +99,13 @@ test('travel, private account, audit, outbox and integration flows with PostgreS
   }
   await request('/admin/places', { token: traveler, method: 'POST', body: fixture, status: 403 })
   const { id } = await request('/admin/places', { token: admin, method: 'POST', body: fixture, status: 201 })
+  await request('/admin/places/' + id, { token: admin, method: 'PUT', body: { ...fixture, food: 'Comida vegetariana' } })
+  const archive = (archived) => request('/admin/places/' + id + '/archive', {
+    token: admin, method: 'PATCH', status: 204, body: { archived },
+  })
+  await archive(true)
+  await request('/places/' + id, { status: 404 })
+  await archive(false)
   const { accessibility } = await request('/places/' + id)
   assert.ok(accessibility.every((feature) => feature.status === 'unknown'))
   await request('/admin/places/' + id + '/accessibility/entrance', {
@@ -115,11 +120,15 @@ test('travel, private account, audit, outbox and integration flows with PostgreS
     await request('/passport/' + id, { token: traveler, method: 'POST', status: 204, body: { visitedOn: '2024-01-02' } })
   }
   assert.equal((await request('/favorites', { token: traveler })).length, 1)
+  assert.deepEqual(await request('/favorites', { token: otherTraveler }), [])
+  await request('/favorites/' + id, { token: otherTraveler, method: 'DELETE', status: 204 })
+  assert.equal((await request('/favorites', { token: traveler })).length, 1)
   await request('/favorites', { token: auditor, status: 403 })
   const passport = await request('/passport', { token: traveler })
   assert.equal(passport.visits.length, 1)
   assert.equal(passport.visits[0].stamp, true)
   assert.equal(passport.badges[0].earned, true)
+  assert.deepEqual((await request('/passport', { token: otherTraveler })).visits, [])
   const review = await request('/places/' + id + '/reviews', {
     token: traveler, method: 'POST', status: 201, body: { body: 'Reseña de prueba', rating: 4 },
   })
@@ -127,6 +136,11 @@ test('travel, private account, audit, outbox and integration flows with PostgreS
   await request('/moderation/' + review.id, { token: auditor, method: 'PATCH', body: { status: 'approved' }, status: 403 })
   await request('/moderation/' + review.id, { token: moderator, method: 'PATCH', body: { status: 'approved' }, status: 204 })
   assert.equal((await request('/places/' + id)).reviews.length, 1)
+  const report = await request('/places/' + id + '/reports', {
+    token: traveler, method: 'POST', body: { body: 'La información necesita una revisión.' }, status: 201,
+  })
+  assert.equal((await request('/moderation', { token: moderator }))[0].id, report.id)
+  await request('/moderation/' + report.id, { token: moderator, method: 'PATCH', body: { status: 'rejected' }, status: 204 })
 
   const body = { text: 'Consulta de persona@example.test', query: 'prueba', authorized: true }
   await request('/agents/moderation', { token: traveler, method: 'POST', body, status: 403 })

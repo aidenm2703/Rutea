@@ -5,7 +5,7 @@ import { ActionForm, Resource } from '../../components/Request.jsx'
 
 const states = { confirmed: 'Confirmado', reported: 'Reportado', unavailable: 'Ausencia documentada', unknown: 'Desconocido' }
 
-function MapView({ place }) {
+function MapView({ place, visible = false }) {
   const [show, setShow] = useState(false)
   const { latitude: lat, longitude: lon } = place
   const url = new URL('https://www.openstreetmap.org/export/embed.html')
@@ -13,9 +13,27 @@ function MapView({ place }) {
     bbox: [Math.max(-180,lon-.04),Math.max(-90,lat-.03),Math.min(180,lon+.04),Math.min(90,lat+.03)].join(','),
     marker: [lat,lon].join(','), layer: 'mapnik',
   })
-  return show
+  return show || visible
     ? <iframe className="map" title={`Mapa de ${place.name}`} src={url.href} referrerPolicy="no-referrer" loading="lazy" />
     : <button type="button" onClick={() => setShow(true)}>Mostrar mapa de OpenStreetMap</button>
+}
+
+function ResultsMap({ places, selectPlace }) {
+  const [visible, setVisible] = useState(false)
+  const [selectedId, setSelectedId] = useState(null)
+  const place = places.find(({ id }) => id === selectedId) ?? places[0]
+
+  if (!visible) return <button className="secondary" onClick={() => setVisible(true)}>Ver resultados en el mapa</button>
+  return <section className="stack" aria-label="Mapa de resultados">
+    <label>Lugar en el mapa <select value={place.id} onChange={(event) => setSelectedId(event.target.value)}>
+      {places.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+    </select></label>
+    <MapView place={place} visible />
+    <div className="actions">
+      <button onClick={() => selectPlace(place.id)}>Ver ficha seleccionada</button>
+      <button className="secondary" onClick={() => setVisible(false)}>Ocultar mapa</button>
+    </div>
+  </section>
 }
 
 function Place({ id, session, close }) {
@@ -99,6 +117,7 @@ export default function Catalog({ session, placeId, selectPlace }) {
     </form>}</Resource>
     <Resource resource={results}>{(places) => <>
       {places.length === 0 && <p>No hay lugares con esos filtros.</p>}
+      {places.length > 0 && <ResultsMap places={places} selectPlace={selectPlace} />}
       <div className="results-grid">{places.map((place) => <article key={place.id} className="place-result">
         <p>{place.province_name} · {place.category_name}</p>
         <h2>{place.name}</h2>

@@ -7,6 +7,6 @@ const port = Number(process.env.PORT ?? 3000)
 const db = new PGlite()
 await initializeEmptyDatabase((sql) => db.exec(sql))
 const app = createRuntime(db, { JWT_SECRET: randomBytes(32).toString('hex') })
-app.listen(port, '127.0.0.1', () => {
-  console.log(`Rutea demo en http://127.0.0.1:${port}. Los datos se reinician al cerrar el proceso.`)
+const server = app.listen(port, '127.0.0.1', () => {
+  console.log(`Rutea demo en http://127.0.0.1:${server.address().port}. Los datos se reinician al cerrar el proceso.`)
 })
